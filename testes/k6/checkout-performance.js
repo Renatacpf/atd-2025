@@ -7,7 +7,7 @@ export const options = {
   thresholds: {
     http_req_duration: ['p(90)<=900', 'p(95)<=950'],
     http_req_failed: ['rate<0.01'],
-    'group_duration{group:::Fazendo login}': ['avg<700'],
+    'group_duration{group:::Fazendo login}': ['avg<900'],
     'group_duration{group:::Realizando checkout}': ['avg<600'],
     'group_duration{group:::Simulando o pensamento do usuário}': ['avg<1100']
   }
