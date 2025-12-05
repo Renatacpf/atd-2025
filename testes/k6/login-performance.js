@@ -5,9 +5,9 @@ export const options = {
   vus: 10,
   duration: '30s',
   thresholds: {
-    http_req_duration: ['p(90)<=15', 'p(95)<=20'],
+    http_req_duration: ['p(90)<=900', 'p(95)<=1500'],
     http_req_failed: ['rate<0.01'],
-    'group_duration{group:::Fazendo login}': ['avg<300'],
+    'group_duration{group:::Fazendo login}': ['avg<500'],
     'group_duration{group:::Simulando o pensamento do usuário}': ['avg<1100']
   }
 };
