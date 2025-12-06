@@ -1,0 +1,102 @@
+# Prompt para Criação de Teste de Performance com K6
+
+## Objetivo
+Crie um teste de performance com K6 que execute o fluxo completo: registrar um usuário, fazer login, criar produtos e realizar checkout em uma API REST de e-commerce.
+
+## Contexto
+- O K6 já está instalado na máquina
+- O teste a ser criado é apenas para o fluxo principal (não preciso de fluxo alternativo ou de exceção)
+- Para entender os endpoints, consulte o arquivo `swagger.yaml` na raiz do projeto:
+  - POST /auth/register - Registrar novo usuário
+  - POST /auth/login - Fazer login e obter token JWT
+  - POST /products - Criar produto (requer autenticação)
+  - POST /checkout - Realizar checkout (requer autenticação)
+- A API está rodando em `http://localhost:3000`
+- O teste de performance passa quando o percentil de 95 (p95) é menor que 2 segundos
+- Esse teste deve rodar para 10 usuários virtuais com 30 segundos de duração
+
+## Regras
+- Salve o teste dentro da pasta `testes/k6/complete-flow-performance.js`
+- Implemente o fluxo completo na seguinte ordem:
+  1. **Registrar usuário** usando POST /auth/register (gere emails únicos com `user${Date.now()}${__VU}${__ITER}@example.com`)
+  2. **Fazer login** usando POST /auth/login
+  3. **Criar 2 produtos** usando POST /products (crie produtos com estoque >= 100 unidades e use os IDs retornados)
+  4. **Realizar checkout** usando POST /checkout (use os IDs dos produtos criados, não use IDs fixos como 1, 2)
+- **IMPORTANTE**: SEMPRE crie produtos com estoque antes de testar checkout (nunca assuma que produtos já existem)
+- Crie check do status code de sucesso contido na resposta de cada request que você fizer
+- Crie checks adicionais para validar:
+  - Token retornado no login
+  - IDs dos produtos criados
+  - ID e total do pedido no checkout
+- Separe ações similares em groups usando `group()`
+- Execute o teste depois de criar para saber se está funcionando corretamente
+
+### Regras Gerais para Todos os Testes
+1. **Importações necessárias**:
+   ```javascript
+   import http from 'k6/http';
+   import { sleep, check, group } from 'k6';
+   ```
+
+2. **Configuração de options**:
+   ```javascript
+   export const options = {
+     vus: 10,
+     duration: '30s',
+     thresholds: {
+       http_req_duration: ['p(95)<2000'], // p95 < 2 segundos
+       http_req_failed: ['rate<0.01']
+     }
+   };
+   ```
+
+3. **Headers obrigatórios para requisições**:
+   - `'Content-Type': 'application/json'` em todas as requisições POST
+   - `'Authorization': 'Bearer ${token}'` quando requer autenticação
+
+4. **Formatação do body**:
+   - Use `JSON.stringify()` para converter objetos em JSON
+
+5. **Validações com check**:
+   - Sempre valide o status code
+   - Valide campos importantes da resposta
+   - Use nomes descritivos: `'login: status deve ser igual a 200'`
+
+6. **User Think Time**:
+   - Adicione `sleep(1)` entre grupos de ações para simular comportamento real
+
+### Exemplo de Estrutura Base
+```javascript
+import http from 'k6/http';
+import { sleep, check, group } from 'k6';
+
+export const options = {
+  vus: 10,
+  duration: '30s',
+  thresholds: {
+    http_req_duration: ['p(95)<2000'], // p95 < 2 segundos
+    http_req_failed: ['rate<0.01']
+  }
+};
+
+export default function() {
+  group('Nome do Grupo', function() {
+    let response = http.post(
+      'http://localhost:3000/endpoint',
+      JSON.stringify({ campo: 'valor' }),
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+    
+    check(response, {
+      'descrição da validação': (r) => r.status === 200
+    });
+  });
+  
+  sleep(1);
+}
+```
+
+### Observações Finais
+- Consulte o `swagger.yaml` para detalhes dos endpoints
+- Execute cada teste após criá-lo para validar
+- Para checkout, nunca use IDs fixos de produtos - sempre crie produtos novos com estoque
